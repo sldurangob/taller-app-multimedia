@@ -42,15 +42,12 @@ flutter run
 ## Capturas de Pantalla
 
 ### Vista de Video
-
 screenshots/video.jpeg
 
 ### Vista de Imágenes
-
 screenshots/imagenes.jpeg
 
 ### Vista Web
-
 screenshots/web.jpeg
 
 ## Repositorio
