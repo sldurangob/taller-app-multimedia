@@ -40,17 +40,29 @@ flutter run
 ```
 
 ## Capturas de Pantalla
-
+2
+ 
+3
 ### Vista de Video
-
+4
+ 
+5
 screenshots/video.jpeg
-
+6
+ 
+7
 ### Vista de Imágenes
-
-![Vistahots/imagenes.jpeg
-
+8
+ 
+9
+screenshots/imagenes.jpeg
+10
+ 
+11
 ### Vista Web
-
+12
+ 
+13
 screenshots/web.jpeg
 
 ## Repositorio
