@@ -1,6 +1,6 @@
 # App Multimedia
 
-Aplicación desarrollada en Flutter para el Taller 01 de Ingeniería Multimedia.
+Aplicación desarrollada en Flutter para el Taller 01 del Corte 2 Profesional Complementaria II
 
 **Autor:** Sergio Luis Durango Banquez
 
