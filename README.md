@@ -33,12 +33,12 @@ flutter run
 
 ### Vista de video
 
-![Vista de video](screenshots/video.png)
+screenshots/video.jpeg
 
 ### Vista de imágenes
 
-![Vista de imágenes](screenshots/imagenes.png)
+screenshots/imagenes.jpeg
 
 ### Vista web
 
-![Vista web](screenshots/web.png)
+screenshots/web.jpeg
