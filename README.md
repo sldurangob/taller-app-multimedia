@@ -39,17 +39,16 @@ flutter pub get
 flutter run
 ```
 
-## Capturas de Pantalla
+## Vistas de la aplicación
 
 ### Vista de Video
-screenshots/video.jpeg
+![Vista de Video](screenshots/video.jpeg)
 
 ### Vista de Imágenes
-screenshots/imagenes.jpeg
+![Vista de Imágenes](screenshots/imagenes.jpeg)
 
 ### Vista Web
-screenshots/web.jpeg
-
+![Vista Web](screenshots/web.jpeg)
 ## Repositorio
 
 https://github.com/sldurangob/taller-app-multimedia
