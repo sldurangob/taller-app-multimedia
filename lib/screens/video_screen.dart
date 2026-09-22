@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:video_player/video_player.dart';
 
 class VideoScreen extends StatefulWidget {
@@ -29,10 +30,6 @@ class _VideoScreenState extends State<VideoScreen> {
     _loadExampleVideo();
   }
 
-  // ----------------------------------------------------------
-  // VIDEO DE EJEMPLO
-  // ----------------------------------------------------------
-
   Future<void> _loadExampleVideo() async {
     final controller = VideoPlayerController.networkUrl(
       Uri.parse(
@@ -42,7 +39,6 @@ class _VideoScreenState extends State<VideoScreen> {
 
     try {
       await controller.initialize();
-
       await controller.setLooping(false);
 
       controller.addListener(_videoListener);
@@ -56,7 +52,9 @@ class _VideoScreenState extends State<VideoScreen> {
         _controller = controller;
         _videoName = 'Video de ejemplo';
       });
-    } catch (e) {
+
+      await _loadVideoState();
+    } catch (_) {
       await controller.dispose();
 
       if (mounted) {
@@ -65,19 +63,10 @@ class _VideoScreenState extends State<VideoScreen> {
     }
   }
 
-  // ----------------------------------------------------------
-  // LISTENER DEL VIDEO
-  // ----------------------------------------------------------
-
   void _videoListener() {
     if (!mounted) return;
-
     setState(() {});
   }
-
-  // ----------------------------------------------------------
-  // SELECCIONAR VIDEO
-  // ----------------------------------------------------------
 
   Future<void> _pickVideo() async {
     try {
@@ -106,7 +95,7 @@ class _VideoScreenState extends State<VideoScreen> {
       try {
         await newController.initialize();
         await newController.setLooping(false);
-      } catch (e) {
+      } catch (_) {
         await newController.dispose();
 
         if (mounted) {
@@ -127,6 +116,8 @@ class _VideoScreenState extends State<VideoScreen> {
           _controller = newController;
           _videoName = file.name;
           _showControls = true;
+          _isLiked = false;
+          _isSaved = false;
         });
       }
 
@@ -136,16 +127,87 @@ class _VideoScreenState extends State<VideoScreen> {
         oldController.removeListener(_videoListener);
         await oldController.dispose();
       }
-    } catch (e) {
+
+      await _loadVideoState();
+    } catch (_) {
       if (mounted) {
         _showError('Error al seleccionar el video.');
       }
     }
   }
 
-  // ----------------------------------------------------------
-  // PLAY / PAUSA
-  // ----------------------------------------------------------
+  Future<void> _loadVideoState() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    final likedVideos = prefs.getStringList('liked_videos') ?? [];
+    final savedVideos = prefs.getStringList('saved_videos') ?? [];
+
+    if (!mounted) return;
+
+    setState(() {
+      _isLiked = likedVideos.contains(_videoName);
+      _isSaved = savedVideos.contains(_videoName);
+    });
+  }
+
+  Future<void> _toggleLike() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    final likedVideos =
+        prefs.getStringList('liked_videos') ?? [];
+
+    if (_isLiked) {
+      likedVideos.remove(_videoName);
+    } else if (!likedVideos.contains(_videoName)) {
+      likedVideos.add(_videoName);
+    }
+
+    await prefs.setStringList(
+      'liked_videos',
+      likedVideos,
+    );
+
+    if (!mounted) return;
+
+    setState(() {
+      _isLiked = !_isLiked;
+    });
+  }
+
+  Future<void> _toggleSave() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    final savedVideos =
+        prefs.getStringList('saved_videos') ?? [];
+
+    if (_isSaved) {
+      savedVideos.remove(_videoName);
+    } else if (!savedVideos.contains(_videoName)) {
+      savedVideos.add(_videoName);
+    }
+
+    await prefs.setStringList(
+      'saved_videos',
+      savedVideos,
+    );
+
+    if (!mounted) return;
+
+    setState(() {
+      _isSaved = !_isSaved;
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          _isSaved
+              ? 'Video guardado'
+              : 'Video eliminado de guardados',
+        ),
+        duration: const Duration(seconds: 1),
+      ),
+    );
+  }
 
   Future<void> _togglePlayPause() async {
     final controller = _controller;
@@ -180,10 +242,6 @@ class _VideoScreenState extends State<VideoScreen> {
     }
   }
 
-  // ----------------------------------------------------------
-  // CONTROLES
-  // ----------------------------------------------------------
-
   void _showControlsTemporarily() {
     if (!mounted) return;
 
@@ -215,10 +273,6 @@ class _VideoScreenState extends State<VideoScreen> {
     );
   }
 
-  // ----------------------------------------------------------
-  // VIDEO TERMINADO
-  // ----------------------------------------------------------
-
   bool _isVideoFinished() {
     final controller = _controller;
 
@@ -231,41 +285,6 @@ class _VideoScreenState extends State<VideoScreen> {
         controller.value.duration;
   }
 
-  // ----------------------------------------------------------
-  // ME GUSTA
-  // ----------------------------------------------------------
-
-  void _toggleLike() {
-    setState(() {
-      _isLiked = !_isLiked;
-    });
-  }
-
-  // ----------------------------------------------------------
-  // GUARDAR
-  // ----------------------------------------------------------
-
-  void _toggleSave() {
-    setState(() {
-      _isSaved = !_isSaved;
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          _isSaved
-              ? 'Video guardado'
-              : 'Video eliminado de guardados',
-        ),
-        duration: const Duration(seconds: 1),
-      ),
-    );
-  }
-
-  // ----------------------------------------------------------
-  // COMPARTIR
-  // ----------------------------------------------------------
-
   void _shareVideo() {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -274,10 +293,6 @@ class _VideoScreenState extends State<VideoScreen> {
       ),
     );
   }
-
-  // ----------------------------------------------------------
-  // FORMATO DE TIEMPO
-  // ----------------------------------------------------------
 
   String _formatDuration(Duration duration) {
     final minutes =
@@ -289,10 +304,6 @@ class _VideoScreenState extends State<VideoScreen> {
     return '$minutes:$seconds';
   }
 
-  // ----------------------------------------------------------
-  // ERROR
-  // ----------------------------------------------------------
-
   void _showError(String message) {
     if (!mounted) return;
 
@@ -302,10 +313,6 @@ class _VideoScreenState extends State<VideoScreen> {
       ),
     );
   }
-
-  // ----------------------------------------------------------
-  // DISPOSE
-  // ----------------------------------------------------------
 
   @override
   void dispose() {
@@ -317,122 +324,90 @@ class _VideoScreenState extends State<VideoScreen> {
     super.dispose();
   }
 
-  // ----------------------------------------------------------
-  // UI
-  // ----------------------------------------------------------
-
   @override
   Widget build(BuildContext context) {
     final controller = _controller;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-
-          const Text(
+          Text(
             'Reproductor de video',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.bold,
+              color: colorScheme.onSurface,
             ),
           ),
-
           const SizedBox(height: 20),
-
-          // --------------------------------------------------
-          // REPRODUCTOR
-          // --------------------------------------------------
-
           if (controller == null ||
               !controller.value.isInitialized)
-
             const SizedBox(
               height: 220,
               child: Center(
                 child: CircularProgressIndicator(),
               ),
             )
-
           else
-
             GestureDetector(
               onTap: _showControlsTemporarily,
-
               child: AspectRatio(
                 aspectRatio: controller.value.aspectRatio,
-
                 child: Stack(
                   children: [
-
-                    // VIDEO
                     Positioned.fill(
                       child: VideoPlayer(controller),
                     ),
-
-                    // BOTÓN PLAY / PAUSA
                     if (_showControls)
                       Center(
                         child: GestureDetector(
                           onTap: _togglePlayPause,
-
                           child: Container(
                             width: 65,
                             height: 65,
-
                             decoration: BoxDecoration(
                               color: Colors.black.withAlpha(170),
                               shape: BoxShape.circle,
                             ),
-
                             child: Icon(
                               _isVideoFinished()
                                   ? Icons.replay
                                   : controller.value.isPlaying
                                       ? Icons.pause
                                       : Icons.play_arrow,
-
                               color: Colors.white,
                               size: 38,
                             ),
                           ),
                         ),
                       ),
-
-                    // CONTROLES INFERIORES
                     if (_showControls)
                       Positioned(
                         left: 0,
                         right: 0,
                         bottom: 0,
-
                         child: Container(
                           padding: const EdgeInsets.all(10),
-
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
                               begin: Alignment.topCenter,
                               end: Alignment.bottomCenter,
-
                               colors: [
                                 Colors.transparent,
                                 Colors.black.withAlpha(210),
                               ],
                             ),
                           ),
-
                           child: Column(
                             children: [
-
                               VideoProgressIndicator(
                                 controller,
-
                                 allowScrubbing: true,
-
                                 padding: EdgeInsets.zero,
-
                                 colors:
                                     const VideoProgressColors(
                                   playedColor: Colors.red,
@@ -440,31 +415,24 @@ class _VideoScreenState extends State<VideoScreen> {
                                   backgroundColor: Colors.white30,
                                 ),
                               ),
-
                               const SizedBox(height: 5),
-
                               Row(
                                 mainAxisAlignment:
                                     MainAxisAlignment.spaceBetween,
-
                                 children: [
-
                                   Text(
                                     _formatDuration(
                                       controller.value.position,
                                     ),
-
                                     style: const TextStyle(
                                       color: Colors.white,
                                       fontSize: 12,
                                     ),
                                   ),
-
                                   Text(
                                     _formatDuration(
                                       controller.value.duration,
                                     ),
-
                                     style: const TextStyle(
                                       color: Colors.white,
                                       fontSize: 12,
@@ -480,130 +448,97 @@ class _VideoScreenState extends State<VideoScreen> {
                 ),
               ),
             ),
-
           const SizedBox(height: 12),
-
-          // --------------------------------------------------
-          // NOMBRE DEL VIDEO
-          // --------------------------------------------------
-
           Text(
             _videoName,
-
             textAlign: TextAlign.center,
-
             maxLines: 1,
-
             overflow: TextOverflow.ellipsis,
-
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w500,
+              color: colorScheme.onSurface,
             ),
           ),
-
           const SizedBox(height: 20),
-
-          // --------------------------------------------------
-          // ME GUSTA / COMPARTIR / GUARDAR
-          // --------------------------------------------------
-
           Container(
             padding: const EdgeInsets.symmetric(vertical: 8),
-
             decoration: BoxDecoration(
-              color: Colors.grey.shade100,
-
+              color: colorScheme.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(12),
             ),
-
             child: Row(
               mainAxisAlignment:
                   MainAxisAlignment.spaceEvenly,
-
               children: [
-
-                // ME GUSTA
                 Expanded(
                   child: InkWell(
                     onTap: _toggleLike,
-
                     child: Column(
                       children: [
-
                         Icon(
                           _isLiked
                               ? Icons.favorite
                               : Icons.favorite_border,
-
                           color: _isLiked
                               ? Colors.red
-                              : Colors.black87,
-
+                              : colorScheme.onSurface,
                           size: 28,
                         ),
-
                         const SizedBox(height: 4),
-
-                        const Text(
+                        Text(
                           'Me gusta',
                           style: TextStyle(
                             fontSize: 12,
+                            color: colorScheme.onSurface,
                           ),
                         ),
                       ],
                     ),
                   ),
                 ),
-
-                // COMPARTIR
                 Expanded(
                   child: InkWell(
                     onTap: _shareVideo,
-
-                    child: const Column(
+                    child: Column(
                       children: [
-
                         Icon(
                           Icons.share_outlined,
+                          color: colorScheme.onSurface,
                           size: 28,
                         ),
-
-                        SizedBox(height: 4),
-
+                        const SizedBox(height: 4),
                         Text(
                           'Compartir',
                           style: TextStyle(
                             fontSize: 12,
+                            color: colorScheme.onSurface,
                           ),
                         ),
                       ],
                     ),
                   ),
                 ),
-
-                // GUARDAR
                 Expanded(
                   child: InkWell(
                     onTap: _toggleSave,
-
                     child: Column(
                       children: [
-
                         Icon(
                           _isSaved
                               ? Icons.bookmark
                               : Icons.bookmark_border,
-
+                          color: _isSaved
+                              ? colorScheme.primary
+                              : colorScheme.onSurface,
                           size: 28,
                         ),
-
                         const SizedBox(height: 4),
-
-                        const Text(
+                        Text(
                           'Guardar',
                           style: TextStyle(
                             fontSize: 12,
+                            color: colorScheme.onSurface,
                           ),
                         ),
                       ],
@@ -613,27 +548,17 @@ class _VideoScreenState extends State<VideoScreen> {
               ],
             ),
           ),
-
           const SizedBox(height: 20),
-
-          // --------------------------------------------------
-          // CARGAR VIDEO
-          // --------------------------------------------------
-
           SizedBox(
             width: double.infinity,
-
             child: ElevatedButton.icon(
               onPressed: _pickVideo,
-
               icon: const Icon(
                 Icons.video_library,
               ),
-
               label: const Text(
                 'Cargar video',
               ),
-
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(
                   vertical: 14,
@@ -641,7 +566,6 @@ class _VideoScreenState extends State<VideoScreen> {
               ),
             ),
           ),
-
           const SizedBox(height: 20),
         ],
       ),

@@ -21,6 +21,14 @@ dependencies:
 
   file_picker: ^10.3.3
 
+  camera: ^0.12.1
+
+  path_provider: ^2.1.5
+
+  shared_preferences: ^2.5.5
+
+  gal: ^2.3.3
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
